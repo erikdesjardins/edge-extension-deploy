@@ -1,0 +1,17 @@
+language: node_js
+node_js:
+  - 7
+  - 6
+  - 4
+script:
+  - nyc npm test
+after_success:
+  - './node_modules/.bin/nyc report --reporter=text-lcov | ./node_modules/.bin/coveralls'
+deploy:
+  provider: npm
+  email: 'public@erikdesjardins.io'
+  api_key:
+    secure: K6HgFDdiA8kcwOyikGakw6Y1VGiSNapWDZ3jAkW6XOdxHJZRBlmMb1Y+Br9ti4K/XkMMM/Kyo2fwNeBLvZdU+2Ev2BQESvPWl/ZIFciMhCxAAIAGNXJLU4Fqub+xQSpM4bG3O/wSfroIVD9UQUE9EZpW5GdqPX68MobUQzS9nVWTKG1GLDW5Dwd6je17eagqe8ycpdvsFsytPbr6H+MGb78gXMyFafeRcarIam2vR4e6DGULFmqVrIUQV8EsNrA72KBD8URSCif/32mMMAkhIUoWxAX9R+snbxh+7M/66rGWgQL+t1Q0NWZTwL7WA2KGBN+db0BDhEYUPF0MV4LfFGDsFLcFX2wP01fJJ/RBPtOOOLsD+nLPjR/764F5pOyzM+x0e2VXqnghLqlJo6h+y403lRezbCRLfG8NDnYOmkQTfBSb5PY0De0dqIpUYA8m8iVPz3OAax45FLZTft5ka2YDLNNwFBiMaMJkIPqis5pRU+led6DtHbxSEC95+XJF4qRMP7pOUyKGCDqCyf60ADYDqn3TG3mCvsl+kK9v09YevBy4es16F7hYaLU1tYyFPiOnLVyMgQuzCAQ7JmhlGYH465FO+p0v/oRjD4YK6gMWqGAcXamR345I/kqOnY/Rrix9TG+IEb6xCiWKJypDDJPex97Ty+f41MDb8LVCFlQ=
+  on:
+    tags: true
+    node: 7
