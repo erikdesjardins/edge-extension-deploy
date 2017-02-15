@@ -213,11 +213,29 @@ test.serial('failing upload', async t => {
 	t.is(t.context.requests.length, 4);
 });
 
+test.serial('failing update', async t => {
+	t.context.responses = [
+		{ access_token: 'q' },
+		{},
+		{ fileUploadUrl: 'https://mockfileupload.url', applicationPackages: [] },
+		{},
+		new ResponseError({ code: 'errorCode' }),
+	];
+
+	await t.throws(
+		deploy({ tenantId: 'q', clientId: 'q', clientSecret: 'q', appId: 'q', appx: new EmptyStream() }),
+		'Failed to update submission: errorCode',
+	);
+
+	t.is(t.context.requests.length, 5);
+});
+
 test.serial('failing commit', async t => {
 	t.context.responses = [
 		{ access_token: 'q' },
 		{},
-		{ fileUploadUrl: 'https://mockfileupload.url' },
+		{ fileUploadUrl: 'https://mockfileupload.url', applicationPackages: [] },
+		{},
 		{},
 		new ResponseError({ code: 'errorCode' }),
 	];
@@ -227,14 +245,15 @@ test.serial('failing commit', async t => {
 		'Failed to commit submission: errorCode',
 	);
 
-	t.is(t.context.requests.length, 5);
+	t.is(t.context.requests.length, 6);
 });
 
 test.serial('failing completion', async t => {
 	t.context.responses = [
 		{ access_token: 'q' },
 		{},
-		{ fileUploadUrl: 'https://mockfileupload.url' },
+		{ fileUploadUrl: 'https://mockfileupload.url', applicationPackages: [] },
+		{},
 		{},
 		{},
 		new ResponseError({ code: 'errorCode' }),
@@ -245,35 +264,17 @@ test.serial('failing completion', async t => {
 		'Failed to poll for commit status: errorCode',
 	);
 
-	t.is(t.context.requests.length, 6);
+	t.is(t.context.requests.length, 7);
 });
 
 test.serial('bad commit status', async t => {
 	t.context.responses = [
 		{ access_token: 'q' },
 		{},
-		{ fileUploadUrl: 'https://mockfileupload.url' },
+		{ fileUploadUrl: 'https://mockfileupload.url', applicationPackages: [] },
 		{},
 		{},
-		{ status: 'CommitFailed', statusDetails: 'statusDetails' }
-	];
-
-	await t.throws(
-		deploy({ tenantId: 'q', clientId: 'q', clientSecret: 'q', appId: 'q', appx: new EmptyStream() }),
-		'Failed: CommitFailed "statusDetails"',
-	);
-
-	t.is(t.context.requests.length, 6);
-});
-
-test.serial('bad commit status after polling', async t => {
-	t.context.responses = [
-		{ access_token: 'q' },
 		{},
-		{ fileUploadUrl: 'https://mockfileupload.url' },
-		{},
-		{},
-		{ status: 'CommitStarted' },
 		{ status: 'CommitFailed', statusDetails: 'statusDetails' }
 	];
 
@@ -285,12 +286,53 @@ test.serial('bad commit status after polling', async t => {
 	t.is(t.context.requests.length, 7);
 });
 
+test.serial('bad commit status after polling', async t => {
+	t.context.responses = [
+		{ access_token: 'q' },
+		{},
+		{ fileUploadUrl: 'https://mockfileupload.url', applicationPackages: [] },
+		{},
+		{},
+		{},
+		{ status: 'CommitStarted' },
+		{ status: 'CommitFailed', statusDetails: 'statusDetails' }
+	];
+
+	await t.throws(
+		deploy({ tenantId: 'q', clientId: 'q', clientSecret: 'q', appId: 'q', appx: new EmptyStream() }),
+		'Failed: CommitFailed "statusDetails"',
+	);
+
+	t.is(t.context.requests.length, 8);
+});
+
+test.serial('bad commit status after polling 2', async t => {
+	t.context.responses = [
+		{ access_token: 'q' },
+		{},
+		{ fileUploadUrl: 'https://mockfileupload.url', applicationPackages: [] },
+		{},
+		{},
+		{},
+		{ status: 'PendingCommit' },
+		{ status: 'CommitFailed', statusDetails: 'statusDetails' }
+	];
+
+	await t.throws(
+		deploy({ tenantId: 'q', clientId: 'q', clientSecret: 'q', appId: 'q', appx: new EmptyStream() }),
+		'Failed: CommitFailed "statusDetails"',
+	);
+
+	t.is(t.context.requests.length, 8);
+});
+
 test.serial('full publish, no pending submission', async t => {
 	t.context.responses = [
 		{ access_token: 'myAccessToken' },
 		{},
-		{ fileUploadUrl: 'https://mockfileupload.url', id: 'mySubmissionId' },
+		{ fileUploadUrl: 'https://mockfileupload.url', id: 'mySubmissionId', applicationPackages: [{ fileName: 'foo', fileStatus: 'Uploaded' }] },
 		{},
+		{ id: 'thisIdWontActuallyChangeInPractice' },
 		{},
 		{ status: 'PreProcessing' }
 	];
@@ -312,11 +354,24 @@ test.serial('full publish, no pending submission', async t => {
 	t.is(r[3].headers['x-ms-blob-type'], 'BlockBlob');
 	t.true(r[3].params instanceof Buffer);
 
-	t.deepEqual(r[4].match, ['myAppId', undefined, '/submissions/mySubmissionId/commit']);
+	t.deepEqual(r[4].match, ['myAppId', undefined, '/submissions/mySubmissionId']);
 	t.is(r[4].headers.Authorization, 'Bearer myAccessToken');
+	t.deepEqual(r[4].params, {
+		applicationPackages: [
+			{ fileName: 'package.appx', fileStatus: 'PendingUpload', minimumDirectXVersion: 'None', minimumSystemRam: 'None' },
+			{ fileName: 'foo', fileStatus: 'PendingDelete' }
+		],
+		fileUploadUrl: 'https://mockfileupload.url',
+		id: 'mySubmissionId'
+	});
 
-	t.deepEqual(r[5].match, ['myAppId', undefined, '/submissions/mySubmissionId/status']);
+	t.deepEqual(r[5].match, ['myAppId', undefined, '/submissions/thisIdWontActuallyChangeInPractice/commit']);
 	t.is(r[5].headers.Authorization, 'Bearer myAccessToken');
+
+	t.deepEqual(r[6].match, ['myAppId', undefined, '/submissions/thisIdWontActuallyChangeInPractice/status']);
+	t.is(r[6].headers.Authorization, 'Bearer myAccessToken');
+
+	t.is(t.context.requests.length, 7);
 });
 
 test.serial('full publish, with pending submission', async t => {
@@ -324,8 +379,9 @@ test.serial('full publish, with pending submission', async t => {
 		{ access_token: 'myAccessToken' },
 		{ pendingApplicationSubmission: { id: 'mySubmissionCode' } },
 		{},
-		{ fileUploadUrl: 'https://mockfileupload.url', id: 'mySubmissionId' },
+		{ fileUploadUrl: 'https://mockfileupload.url', id: 'mySubmissionId', applicationPackages: [{ fileName: 'foo', fileStatus: 'Uploaded' }] },
 		{},
+		{ id: 'thisIdWontActuallyChangeInPractice' },
 		{},
 		{ status: 'PreProcessing' }
 	];
@@ -350,19 +406,33 @@ test.serial('full publish, with pending submission', async t => {
 	t.is(r[4].headers['x-ms-blob-type'], 'BlockBlob');
 	t.true(r[4].params instanceof Buffer);
 
-	t.deepEqual(r[5].match, ['myAppId', undefined, '/submissions/mySubmissionId/commit']);
+	t.deepEqual(r[5].match, ['myAppId', undefined, '/submissions/mySubmissionId']);
 	t.is(r[5].headers.Authorization, 'Bearer myAccessToken');
+	t.deepEqual(r[5].params, {
+		applicationPackages: [
+			{ fileName: 'package.appx', fileStatus: 'PendingUpload', minimumDirectXVersion: 'None', minimumSystemRam: 'None' },
+			{ fileName: 'foo', fileStatus: 'PendingDelete' }
+		],
+		fileUploadUrl: 'https://mockfileupload.url',
+		id: 'mySubmissionId'
+	});
 
-	t.deepEqual(r[6].match, ['myAppId', undefined, '/submissions/mySubmissionId/status']);
+	t.deepEqual(r[6].match, ['myAppId', undefined, '/submissions/thisIdWontActuallyChangeInPractice/commit']);
 	t.is(r[6].headers.Authorization, 'Bearer myAccessToken');
+
+	t.deepEqual(r[7].match, ['myAppId', undefined, '/submissions/thisIdWontActuallyChangeInPractice/status']);
+	t.is(r[7].headers.Authorization, 'Bearer myAccessToken');
+
+	t.is(t.context.requests.length, 8);
 });
 
 test.serial('full publish to flight, no pending submission', async t => {
 	t.context.responses = [
 		{ access_token: 'myAccessToken' },
 		{},
-		{ fileUploadUrl: 'https://mockfileupload.url', id: 'mySubmissionId' },
+		{ fileUploadUrl: 'https://mockfileupload.url', id: 'mySubmissionId', flightPackages: [{ fileName: 'foo', fileStatus: 'Uploaded' }] },
 		{},
+		{ id: 'thisIdWontActuallyChangeInPractice' },
 		{},
 		{ status: 'PreProcessing' }
 	];
@@ -384,11 +454,24 @@ test.serial('full publish to flight, no pending submission', async t => {
 	t.is(r[3].headers['x-ms-blob-type'], 'BlockBlob');
 	t.true(r[3].params instanceof Buffer);
 
-	t.deepEqual(r[4].match, ['myAppId', 'myFlightId', '/submissions/mySubmissionId/commit']);
+	t.deepEqual(r[4].match, ['myAppId', 'myFlightId', '/submissions/mySubmissionId']);
 	t.is(r[4].headers.Authorization, 'Bearer myAccessToken');
+	t.deepEqual(r[4].params, {
+		flightPackages: [
+			{ fileName: 'package.appx', fileStatus: 'PendingUpload', minimumDirectXVersion: 'None', minimumSystemRam: 'None' },
+			{ fileName: 'foo', fileStatus: 'PendingDelete' }
+		],
+		fileUploadUrl: 'https://mockfileupload.url',
+		id: 'mySubmissionId'
+	});
 
-	t.deepEqual(r[5].match, ['myAppId', 'myFlightId', '/submissions/mySubmissionId/status']);
+	t.deepEqual(r[5].match, ['myAppId', 'myFlightId', '/submissions/thisIdWontActuallyChangeInPractice/commit']);
 	t.is(r[5].headers.Authorization, 'Bearer myAccessToken');
+
+	t.deepEqual(r[6].match, ['myAppId', 'myFlightId', '/submissions/thisIdWontActuallyChangeInPractice/status']);
+	t.is(r[6].headers.Authorization, 'Bearer myAccessToken');
+
+	t.is(t.context.requests.length, 7);
 });
 
 test.serial('full publish to flight, with pending submission', async t => {
@@ -396,8 +479,9 @@ test.serial('full publish to flight, with pending submission', async t => {
 		{ access_token: 'myAccessToken' },
 		{ pendingFlightSubmission: { id: 'mySubmissionCode' } },
 		{},
-		{ fileUploadUrl: 'https://mockfileupload.url', id: 'mySubmissionId' },
+		{ fileUploadUrl: 'https://mockfileupload.url', id: 'mySubmissionId', flightPackages: [{ fileName: 'foo', fileStatus: 'Uploaded' }] },
 		{},
+		{ id: 'thisIdWontActuallyChangeInPractice' },
 		{},
 		{ status: 'PreProcessing' }
 	];
@@ -422,9 +506,20 @@ test.serial('full publish to flight, with pending submission', async t => {
 	t.is(r[4].headers['x-ms-blob-type'], 'BlockBlob');
 	t.true(r[4].params instanceof Buffer);
 
-	t.deepEqual(r[5].match, ['myAppId', 'myFlightId', '/submissions/mySubmissionId/commit']);
+	t.deepEqual(r[5].match, ['myAppId', 'myFlightId', '/submissions/mySubmissionId']);
 	t.is(r[5].headers.Authorization, 'Bearer myAccessToken');
+	t.deepEqual(r[5].params, {
+		flightPackages: [
+			{ fileName: 'package.appx', fileStatus: 'PendingUpload', minimumDirectXVersion: 'None', minimumSystemRam: 'None' },
+			{ fileName: 'foo', fileStatus: 'PendingDelete' }
+		],
+		fileUploadUrl: 'https://mockfileupload.url',
+		id: 'mySubmissionId'
+	});
 
-	t.deepEqual(r[6].match, ['myAppId', 'myFlightId', '/submissions/mySubmissionId/status']);
+	t.deepEqual(r[6].match, ['myAppId', 'myFlightId', '/submissions/thisIdWontActuallyChangeInPractice/commit']);
 	t.is(r[6].headers.Authorization, 'Bearer myAccessToken');
+
+	t.deepEqual(r[7].match, ['myAppId', 'myFlightId', '/submissions/thisIdWontActuallyChangeInPractice/status']);
+	t.is(r[7].headers.Authorization, 'Bearer myAccessToken');
 });
