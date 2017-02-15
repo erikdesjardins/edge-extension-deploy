@@ -153,7 +153,7 @@ module.exports = function deploy(options) {
 				.then(function(response) {
 					// https://github.com/Microsoft/StoreBroker/blob/master/Documentation/USAGE.md#status-progression
 					var status = response.body.status;
-					if (status === 'CommitStarted') {
+					if (status === 'PendingCommit' || status === 'CommitStarted') {
 						// try again
 						return sleep(30000).then(poll);
 					} else if (
