@@ -130,6 +130,32 @@ module.exports = function deploy(options) {
 					throw new Error('Failed to upload package: ' + (err.response.body.code || err.response.status));
 				});
 		})
+		// update the submission to intake the new package
+		.then(function() {
+			// https://docs.microsoft.com/en-us/windows/uwp/monetize/update-an-app-submission
+			// https://docs.microsoft.com/en-us/windows/uwp/monetize/update-a-flight-submission
+			return request
+				.put(appAndFlight + '/submissions/' + submissionInfo.id)
+				.set('Authorization', 'Bearer ' + accessToken)
+				.send(Object.assign({}, submissionInfo, {
+					[flightId ? 'flightPackages' : 'applicationPackages']: [{
+						fileName: 'package.appx',
+						fileStatus: 'PendingUpload',
+						minimumDirectXVersion: 'None',
+						minimumSystemRam: 'None'
+					}].concat(submissionInfo[flightId ? 'flightPackages' : 'applicationPackages'].map(function(pack) {
+						// remove old packages
+						return Object.assign({}, pack, {
+							fileStatus: 'PendingDelete'
+						});
+					}))
+				}))
+				.then(function(response) {
+					submissionInfo = response.body;
+				}, function(err) {
+					throw new Error('Failed to update submission: ' + (err.response.body.code || err.response.status));
+				});
+		})
 		// commit new submission
 		.then(function() {
 			// https://docs.microsoft.com/en-us/windows/uwp/monetize/commit-an-app-submission
@@ -153,7 +179,7 @@ module.exports = function deploy(options) {
 				.then(function(response) {
 					// https://github.com/Microsoft/StoreBroker/blob/master/Documentation/USAGE.md#status-progression
 					var status = response.body.status;
-					if (status === 'CommitStarted') {
+					if (status === 'PendingCommit' || status === 'CommitStarted') {
 						// try again
 						return sleep(30000).then(poll);
 					} else if (
