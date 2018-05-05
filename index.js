@@ -173,7 +173,7 @@ module.exports = function deploy(options) {
 		.then(function poll() {
 			// https://docs.microsoft.com/en-us/windows/uwp/monetize/get-status-for-an-app-submission
 			// https://docs.microsoft.com/en-us/windows/uwp/monetize/get-status-for-a-flight-submission
-			return request
+			return sleep(30000).then(() => request
 				.get(appAndFlight + '/submissions/' + submissionInfo.id + '/status')
 				.set('Authorization', 'Bearer ' + accessToken)
 				.then(function(response) {
@@ -181,7 +181,7 @@ module.exports = function deploy(options) {
 					var status = response.body.status;
 					if (status === 'PendingCommit' || status === 'CommitStarted') {
 						// try again
-						return sleep(30000).then(poll);
+						return poll();
 					} else if (
 						status !== 'PreProcessing' &&
 						// anything other than PreProcessing is unlikely,
@@ -193,6 +193,7 @@ module.exports = function deploy(options) {
 					}
 				}, function(err) {
 					throw new Error('Failed to poll for commit status: ' + (err.response.body.code || err.response.status));
-				});
+				})
+			);
 		});
 };

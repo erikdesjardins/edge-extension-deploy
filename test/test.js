@@ -58,10 +58,18 @@ test.beforeEach(t => {
 			throw new Error('No mocked endpoint for: ' + match);
 		}
 	}]);
+
+	const oldSetTimeout = global.setTimeout;
+	t.context.oldSetTimeout = oldSetTimeout;
+	global.setTimeout = function shortSetTimeout(fn, delay, ...args) {
+		return oldSetTimeout(fn, delay / 1000, ...args);
+	};
 });
 
 test.afterEach(t => {
 	t.context.mock.unset();
+
+	global.setTimeout = t.context.oldSetTimeout;
 });
 
 test.serial('missing fields', async t => {
@@ -324,6 +332,27 @@ test.serial('bad commit status after polling 2', async t => {
 	);
 
 	t.is(t.context.requests.length, 8);
+});
+
+test.serial('bad commit status after multiple polling', async t => {
+	t.context.responses = [
+		{ access_token: 'q' },
+		{},
+		{ fileUploadUrl: 'https://mockfileupload.url', applicationPackages: [] },
+		{},
+		{},
+		{},
+		{ status: 'PendingCommit' },
+		{ status: 'CommitStarted' },
+		{ status: 'CommitFailed', statusDetails: 'statusDetails' }
+	];
+
+	await t.throws(
+		deploy({ tenantId: 'q', clientId: 'q', clientSecret: 'q', appId: 'q', appx: new EmptyStream() }),
+		'Failed: CommitFailed "statusDetails"',
+	);
+
+	t.is(t.context.requests.length, 9);
 });
 
 test.serial('full publish, no pending submission', async t => {
