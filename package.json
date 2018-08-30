@@ -1,6 +1,6 @@
 {
   "name": "edge-extension-deploy",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Deploy Edge extensions to the Windows Store.",
   "main": "index.js",
   "scripts": {
