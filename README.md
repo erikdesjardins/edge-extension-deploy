@@ -1,4 +1,4 @@
-# edge-extension-deploy [![Build Status](https://travis-ci.org/erikdesjardins/edge-extension-deploy.svg?branch=master)](https://travis-ci.org/erikdesjardins/edge-extension-deploy) [![Coverage Status](https://coveralls.io/repos/github/erikdesjardins/edge-extension-deploy/badge.svg?branch=master)](https://coveralls.io/github/erikdesjardins/edge-extension-deploy?branch=master)
+# edge-extension-deploy
 
 Deploy Edge extensions to the Windows Store.
 
