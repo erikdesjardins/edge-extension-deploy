@@ -73,27 +73,27 @@ test.afterEach(t => {
 });
 
 test.serial('missing fields', async t => {
-	await t.throws(
+	await t.throwsAsync(
 		deploy({ clientId: 'q', clientSecret: 'q', appId: 'q', appx: new EmptyStream() }),
 		'Missing required field: tenantId'
 	);
 
-	await t.throws(
+	await t.throwsAsync(
 		deploy({ tenantId: 'q', clientSecret: 'q', appId: 'q', appx: new EmptyStream() }),
 		'Missing required field: clientId'
 	);
 
-	await t.throws(
+	await t.throwsAsync(
 		deploy({ tenantId: 'q', clientId: 'q', appId: 'q', appx: new EmptyStream() }),
 		'Missing required field: clientSecret'
 	);
 
-	await t.throws(
+	await t.throwsAsync(
 		deploy({ tenantId: 'q', clientId: 'q', clientSecret: 'q', appx: new EmptyStream() }),
 		'Missing required field: appId'
 	);
 
-	await t.throws(
+	await t.throwsAsync(
 		deploy({ tenantId: 'q', clientId: 'q', clientSecret: 'q', appId: 'q', }),
 		'Missing required field: appx'
 	);
@@ -102,7 +102,7 @@ test.serial('missing fields', async t => {
 test.serial('failing access token', async t => {
 	t.context.responses = [new ResponseError({ error: 'failed' })];
 
-	await t.throws(
+	await t.throwsAsync(
 		deploy({ tenantId: 'q', clientId: 'q', clientSecret: 'q', appId: 'q', appx: new EmptyStream() }),
 		'Failed to fetch access token: failed'
 	);
@@ -113,7 +113,7 @@ test.serial('failing access token', async t => {
 test.serial('failing access token, status', async t => {
 	t.context.responses = [new ResponseError({}, 403)];
 
-	await t.throws(
+	await t.throwsAsync(
 		deploy({ tenantId: 'q', clientId: 'q', clientSecret: 'q', appId: 'q', appx: new EmptyStream() }),
 		'Failed to fetch access token: 403'
 	);
@@ -124,7 +124,7 @@ test.serial('failing access token, status', async t => {
 test.serial('no access token', async t => {
 	t.context.responses = [{}];
 
-	await t.throws(
+	await t.throwsAsync(
 		deploy({ tenantId: 'q', clientId: 'q', clientSecret: 'q', appId: 'q', appx: new EmptyStream() }),
 		'No access token received.'
 	);
@@ -138,7 +138,7 @@ test.serial('failing app info', async t => {
 		new ResponseError({ code: 'errorCode' }),
 	];
 
-	await t.throws(
+	await t.throwsAsync(
 		deploy({ tenantId: 'q', clientId: 'q', clientSecret: 'q', appId: 'q', appx: new EmptyStream() }),
 		'Failed to fetch app: errorCode',
 	);
@@ -152,7 +152,7 @@ test.serial('failing flight info', async t => {
 		new ResponseError({ code: 'errorCode' }),
 	];
 
-	await t.throws(
+	await t.throwsAsync(
 		deploy({ tenantId: 'q', clientId: 'q', clientSecret: 'q', appId: 'q', flightId: 'q', appx: new EmptyStream() }),
 		'Failed to fetch flight: errorCode',
 	);
@@ -167,7 +167,7 @@ test.serial('failing deletion, app', async t => {
 		new ResponseError({ code: 'errorCode' }),
 	];
 
-	await t.throws(
+	await t.throwsAsync(
 		deploy({ tenantId: 'q', clientId: 'q', clientSecret: 'q', appId: 'q', appx: new EmptyStream() }),
 		'Failed to delete previous submission: errorCode',
 	);
@@ -182,7 +182,7 @@ test.serial('failing deletion, flight', async t => {
 		new ResponseError({ code: 'errorCode' }),
 	];
 
-	await t.throws(
+	await t.throwsAsync(
 		deploy({ tenantId: 'q', clientId: 'q', clientSecret: 'q', appId: 'q', flightId: 'q', appx: new EmptyStream() }),
 		'Failed to delete previous submission: errorCode',
 	);
@@ -197,7 +197,7 @@ test.serial('failing creation', async t => {
 		new ResponseError({ code: 'errorCode' }),
 	];
 
-	await t.throws(
+	await t.throwsAsync(
 		deploy({ tenantId: 'q', clientId: 'q', clientSecret: 'q', appId: 'q', appx: new EmptyStream() }),
 		'Failed to create new submission: errorCode',
 	);
@@ -213,7 +213,7 @@ test.serial('failing update', async t => {
 		new ResponseError({ code: 'errorCode' }),
 	];
 
-	await t.throws(
+	await t.throwsAsync(
 		deploy({ tenantId: 'q', clientId: 'q', clientSecret: 'q', appId: 'q', appx: new EmptyStream() }),
 		'Failed to update submission: errorCode',
 	);
@@ -230,7 +230,7 @@ test.serial('failing upload', async t => {
 		new ResponseError({ code: 'errorCode' }),
 	];
 
-	await t.throws(
+	await t.throwsAsync(
 		deploy({ tenantId: 'q', clientId: 'q', clientSecret: 'q', appId: 'q', appx: new EmptyStream() }),
 		'Failed to upload package: errorCode',
 	);
@@ -248,7 +248,7 @@ test.serial('failing commit', async t => {
 		new ResponseError({ code: 'errorCode' }),
 	];
 
-	await t.throws(
+	await t.throwsAsync(
 		deploy({ tenantId: 'q', clientId: 'q', clientSecret: 'q', appId: 'q', appx: new EmptyStream() }),
 		'Failed to commit submission: errorCode',
 	);
@@ -267,7 +267,7 @@ test.serial('failing completion', async t => {
 		new ResponseError({ code: 'errorCode' }),
 	];
 
-	await t.throws(
+	await t.throwsAsync(
 		deploy({ tenantId: 'q', clientId: 'q', clientSecret: 'q', appId: 'q', appx: new EmptyStream() }),
 		'Failed to poll for commit status: errorCode',
 	);
@@ -286,7 +286,7 @@ test.serial('bad commit status', async t => {
 		{ status: 'CommitFailed', statusDetails: 'statusDetails' }
 	];
 
-	await t.throws(
+	await t.throwsAsync(
 		deploy({ tenantId: 'q', clientId: 'q', clientSecret: 'q', appId: 'q', appx: new EmptyStream() }),
 		'Failed: CommitFailed "statusDetails"',
 	);
@@ -306,7 +306,7 @@ test.serial('bad commit status after polling', async t => {
 		{ status: 'CommitFailed', statusDetails: 'statusDetails' }
 	];
 
-	await t.throws(
+	await t.throwsAsync(
 		deploy({ tenantId: 'q', clientId: 'q', clientSecret: 'q', appId: 'q', appx: new EmptyStream() }),
 		'Failed: CommitFailed "statusDetails"',
 	);
@@ -326,7 +326,7 @@ test.serial('bad commit status after polling 2', async t => {
 		{ status: 'CommitFailed', statusDetails: 'statusDetails' }
 	];
 
-	await t.throws(
+	await t.throwsAsync(
 		deploy({ tenantId: 'q', clientId: 'q', clientSecret: 'q', appId: 'q', appx: new EmptyStream() }),
 		'Failed: CommitFailed "statusDetails"',
 	);
@@ -347,7 +347,7 @@ test.serial('bad commit status after multiple polling', async t => {
 		{ status: 'CommitFailed', statusDetails: 'statusDetails' }
 	];
 
-	await t.throws(
+	await t.throwsAsync(
 		deploy({ tenantId: 'q', clientId: 'q', clientSecret: 'q', appId: 'q', appx: new EmptyStream() }),
 		'Failed: CommitFailed "statusDetails"',
 	);
